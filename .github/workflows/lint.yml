@@ -1,0 +1,53 @@
+name: Lint
+
+# PHP syntax check on every push to main and every PR.
+# Matrix covers the PHP versions we support (per the plugin's Requires PHP header).
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '*.md'
+      - '.editorconfig'
+      - '.gitignore'
+      - 'readme.txt'
+  pull_request:
+    paths-ignore:
+      - '*.md'
+      - '.editorconfig'
+      - '.gitignore'
+      - 'readme.txt'
+
+concurrency:
+  group: lint-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  php-syntax:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.0', '8.1', '8.2', '8.3']
+    name: PHP ${{ matrix.php }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: none
+          coverage: none
+
+      - name: Syntax check all PHP files
+        run: |
+          set -e
+          fail=0
+          while IFS= read -r -d '' file; do
+            if ! php -l "$file" > /dev/null 2>&1; then
+              echo "::error file=$file::Syntax error"
+              php -l "$file" || true
+              fail=1
+            fi
+          done < <(find . -name '*.php' -not -path './.git/*' -not -path './.github/*' -print0)
+          exit $fail

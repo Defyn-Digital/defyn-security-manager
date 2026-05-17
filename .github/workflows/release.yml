@@ -1,0 +1,145 @@
+name: Release
+
+# Triggered by pushing a tag like `v1.0.1`. Builds the plugin zip, verifies the
+# tag matches the version in the plugin's header, and creates a GitHub release
+# with the zip attached. This release acts as a backup distribution channel
+# and a changelog mirror — the primary distribution is wordpress.org.
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'        # v1.0.0
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'      # v1.0.0-beta.1
+
+permissions:
+  contents: write   # Required by softprops/action-gh-release to create the release.
+
+env:
+  PLUGIN_SLUG: defyn-security-manager
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # Full history so generate_release_notes can diff.
+
+      - name: Resolve tag and version
+        id: meta
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG#v}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [[ "$VERSION" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify plugin header matches tag
+        run: |
+          HEADER_VERSION=$(awk '/^[[:space:]]*\*[[:space:]]*Version:/ { print $3; exit }' "${{ env.PLUGIN_SLUG }}.php")
+          CONST_VERSION=$(awk -F"'" '/define\([[:space:]]*'\''DSM_VERSION'\''/ { print $4; exit }' "${{ env.PLUGIN_SLUG }}.php")
+          echo "Tag version:    ${{ steps.meta.outputs.version }}"
+          echo "Header version: $HEADER_VERSION"
+          echo "Const version:  $CONST_VERSION"
+          if [ "$HEADER_VERSION" != "${{ steps.meta.outputs.version }}" ]; then
+            echo "::error::Plugin header Version ($HEADER_VERSION) does not match tag (${{ steps.meta.outputs.version }}). Bump the header in ${{ env.PLUGIN_SLUG }}.php before tagging."
+            exit 1
+          fi
+          if [ "$CONST_VERSION" != "${{ steps.meta.outputs.version }}" ]; then
+            echo "::error::DSM_VERSION constant ($CONST_VERSION) does not match tag (${{ steps.meta.outputs.version }}). Bump the constant in ${{ env.PLUGIN_SLUG }}.php before tagging."
+            exit 1
+          fi
+
+      - name: Setup PHP for syntax check
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          tools: none
+          coverage: none
+
+      - name: PHP syntax check
+        run: |
+          set -e
+          fail=0
+          while IFS= read -r -d '' file; do
+            if ! php -l "$file" > /dev/null 2>&1; then
+              echo "::error file=$file::Syntax error"
+              php -l "$file" || true
+              fail=1
+            fi
+          done < <(find . -name '*.php' -not -path './.git/*' -not -path './.github/*' -print0)
+          exit $fail
+
+      - name: Build plugin zip
+        id: build
+        run: |
+          BUILD_DIR="build/${{ env.PLUGIN_SLUG }}"
+          mkdir -p "$BUILD_DIR"
+          rsync -av \
+            --exclude='.*' \
+            --exclude='node_modules/' \
+            --exclude='vendor/' \
+            --exclude='build/' \
+            --exclude='*.zip' \
+            --exclude='README.md' \
+            --exclude='phpcs.xml' \
+            --exclude='composer.json' \
+            --exclude='composer.lock' \
+            --exclude='package.json' \
+            --exclude='package-lock.json' \
+            ./ "$BUILD_DIR/"
+          ZIP_NAME="${{ env.PLUGIN_SLUG }}-${{ steps.meta.outputs.version }}.zip"
+          cd build && zip -rq "../$ZIP_NAME" "${{ env.PLUGIN_SLUG }}"
+          cd ..
+          ls -lh "$ZIP_NAME"
+          echo "zip=$ZIP_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Verify zip structure
+        # Sanity-check the zip layout. WordPress expects everything inside a single top-level folder named after the slug.
+        run: |
+          ZIP_NAME="${{ steps.build.outputs.zip }}"
+          unzip -l "$ZIP_NAME" | head -20
+          echo "---"
+          # Top-level entries should all begin with the slug.
+          STRAY=$(unzip -Z1 "$ZIP_NAME" | awk -F/ '{ print $1 }' | sort -u | grep -vx "${{ env.PLUGIN_SLUG }}" || true)
+          if [ -n "$STRAY" ]; then
+            echo "::error::Zip contains entries outside ${{ env.PLUGIN_SLUG }}/: $STRAY"
+            exit 1
+          fi
+          # Main file must be present.
+          if ! unzip -l "$ZIP_NAME" | grep -q "${{ env.PLUGIN_SLUG }}/${{ env.PLUGIN_SLUG }}.php"; then
+            echo "::error::Main plugin file missing from zip"
+            exit 1
+          fi
+          echo "Zip structure OK."
+
+      - name: Upload zip as workflow artifact (debug aid)
+        # Lets you download the exact zip from the Actions run even if release publishing fails.
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.build.outputs.zip }}
+          path: ${{ steps.build.outputs.zip }}
+          retention-days: 30
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Defyn Security Manager ${{ steps.meta.outputs.version }}
+          tag_name: ${{ steps.meta.outputs.tag }}
+          files: ${{ steps.build.outputs.zip }}
+          prerelease: ${{ steps.meta.outputs.prerelease }}
+          generate_release_notes: true
+          body: |
+            ## Defyn Security Manager ${{ steps.meta.outputs.version }}
+
+            **Install via WordPress.org (recommended):** WordPress admin → **Plugins → Add New** → search "Defyn Security Manager" → Install → Activate.
+
+            **Install via this zip:** download the attached file, then **Plugins → Add New → Upload Plugin** → upload → Activate.
+
+            **Recovery:** if you lock yourself out, add `define( 'DSM_DISABLE', true );` to `wp-config.php`. See readme.txt for full recovery procedures.

@@ -1,0 +1,12 @@
+/* Defyn Security Manager — admin styles */
+
+.defyn-bem-wrap .nav-tab-wrapper { margin-bottom: 16px; }
+
+.defyn-bem-wrap .form-table th { width: 240px; }
+
+.defyn-bem-wrap code { background: #f6f7f7; padding: 2px 6px; border-radius: 3px; }
+
+.defyn-bem-wrap input[type="time"],
+.defyn-bem-wrap input[type="number"].small-text { vertical-align: middle; }
+
+.defyn-bem-wrap .notice.inline { margin: 12px 0; }

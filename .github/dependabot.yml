@@ -1,0 +1,15 @@
+version: 2
+
+# Keep the GitHub Actions versions in workflow files current. The plugin itself
+# has no JS/PHP package manager — there's nothing else to track.
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+    labels:
+      - dependencies
+      - ci
