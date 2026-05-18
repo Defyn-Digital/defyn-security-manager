@@ -8,9 +8,9 @@
  * actually get a session cookie.
  *
  * Storage:
- *   - usermeta `dsm_2fa_secret`        (Base32 secret)
- *   - usermeta `dsm_2fa_enabled`       (bool flag)
- *   - usermeta `dsm_2fa_backup_codes`  (array of wp_hash_password hashes)
+ *   - usermeta `defsec_2fa_secret`        (Base32 secret)
+ *   - usermeta `defsec_2fa_enabled`       (bool flag)
+ *   - usermeta `defsec_2fa_backup_codes`  (array of wp_hash_password hashes)
  *
  * Hashed backup codes mean a DB leak doesn't reveal usable codes.
  */
@@ -19,19 +19,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class DSM_Two_Factor {
+class DEFSEC_Two_Factor {
 
-	const META_SECRET   = 'dsm_2fa_secret';
-	const META_ENABLED  = 'dsm_2fa_enabled';
-	const META_BACKUP   = 'dsm_2fa_backup_codes';
+	const META_SECRET   = 'defsec_2fa_secret';
+	const META_ENABLED  = 'defsec_2fa_enabled';
+	const META_BACKUP   = 'defsec_2fa_backup_codes';
 	const PENDING_TTL   = 300; // seconds for which the credential check stays valid while user enters their code
 
 	public function boot(): void {
 		// Intercept after WP has validated credentials.
 		add_filter( 'authenticate', [ $this, 'maybe_require_code' ], 100, 3 );
 
-		// Render the code-entry screen on wp-login.php?action=dsm_2fa
-		add_action( 'login_form_dsm_2fa', [ $this, 'handle_code_form' ] );
+		// Render the code-entry screen on wp-login.php?action=defsec_2fa
+		add_action( 'login_form_defsec_2fa', [ $this, 'handle_code_form' ] );
 
 		// User profile screen: enrollment UI
 		add_action( 'show_user_profile', [ $this, 'render_user_profile' ] );
@@ -45,10 +45,10 @@ class DSM_Two_Factor {
 	}
 
 	public static function user_must_have_2fa( WP_User $user ): bool {
-		if ( ! DSM_Options::get( 'two_factor_enabled' ) ) {
+		if ( ! DEFSEC_Options::get( 'two_factor_enabled' ) ) {
 			return false;
 		}
-		$required = (array) DSM_Options::get( 'two_factor_required_roles', [] );
+		$required = (array) DEFSEC_Options::get( 'two_factor_required_roles', [] );
 		return (bool) array_intersect( $user->roles, $required );
 	}
 
@@ -69,7 +69,7 @@ class DSM_Two_Factor {
 		if ( ! $has_2fa && $must_2fa ) {
 			// Required by policy but not yet set up: block with a clear message.
 			return new WP_Error(
-				'dsm_2fa_required',
+				'defsec_2fa_required',
 				sprintf(
 					__( '<strong>Two-factor authentication is required.</strong> Ask an administrator to help you enrol, then log in again.', 'defyn-security-manager' )
 				)
@@ -83,7 +83,7 @@ class DSM_Two_Factor {
 		$token = $this->issue_pending_token( $user->ID );
 
 		$redirect = add_query_arg( [
-			'action' => 'dsm_2fa',
+			'action' => 'defsec_2fa',
 			'token'  => $token,
 		], wp_login_url() );
 
@@ -117,7 +117,7 @@ class DSM_Two_Factor {
 		$error = '';
 		if ( isset( $_SERVER['REQUEST_METHOD'] ) && 'POST' === sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- See class doc above: opaque pending-session token IS the per-request authenticator for this form.
-			$code = isset( $_POST['dsm_code'] ) ? sanitize_text_field( wp_unslash( $_POST['dsm_code'] ) ) : '';
+			$code = isset( $_POST['defsec_code'] ) ? sanitize_text_field( wp_unslash( $_POST['defsec_code'] ) ) : '';
 			if ( $this->verify_code( $user_id, $code ) ) {
 				$this->consume_pending_token( $token, true );
 
@@ -127,8 +127,9 @@ class DSM_Two_Factor {
 				// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 				$user = get_user_by( 'id', $user_id );
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Re-firing WordPress core's standard `wp_login` action after our 2FA challenge completes, so any plugin listening to the core login event (analytics, audit, mail-on-login, etc.) is notified. Intentional use of the unprefixed core hook.
 				do_action( 'wp_login', $user->user_login, $user );
-				DSM_Activity_Log::record( DSM_Activity_Log::EVT_2FA_SUCCESS, [
+				DEFSEC_Activity_Log::record( DEFSEC_Activity_Log::EVT_2FA_SUCCESS, [
 					'user_id'  => $user_id,
 					'username' => $user->user_login,
 				] );
@@ -137,20 +138,20 @@ class DSM_Two_Factor {
 				exit;
 			}
 
-			DSM_Activity_Log::record( DSM_Activity_Log::EVT_2FA_FAILED, [
+			DEFSEC_Activity_Log::record( DEFSEC_Activity_Log::EVT_2FA_FAILED, [
 				'user_id' => $user_id,
 			] );
 
 			// Same lockout counter as password failures — an attacker can't sidestep
 			// the IP lockout by mixing password and 2FA guesses.
-			if ( DSM_Options::get( 'throttle_enabled' ) ) {
-				$ip = dsm_client_ip();
-				if ( ! dsm_ip_in_list( $ip, (array) DSM_Options::get( 'ip_allowlist', [] ) ) ) {
+			if ( DEFSEC_Options::get( 'throttle_enabled' ) ) {
+				$ip = defsec_client_ip();
+				if ( ! defsec_ip_in_list( $ip, (array) DEFSEC_Options::get( 'ip_allowlist', [] ) ) ) {
 					$user = get_user_by( 'id', $user_id );
-					DSM_Throttle::increment_for_ip( $ip, $user ? $user->user_login : '', false );
+					DEFSEC_Throttle::increment_for_ip( $ip, $user ? $user->user_login : '', false );
 					// If that increment tripped the threshold, stop here — the lockout
 					// guard will catch the next browser POST and short-circuit auth.
-					if ( ( new DSM_Throttle() )->is_locked_out( $ip ) ) {
+					if ( ( new DEFSEC_Throttle() )->is_locked_out( $ip ) ) {
 						wp_die(
 							esc_html__( 'Too many failed attempts. Try again later.', 'defyn-security-manager' ),
 							'',
@@ -167,8 +168,8 @@ class DSM_Two_Factor {
 		?>
 		<form method="post" id="defyn-bem-2fa-form">
 			<p>
-				<label for="dsm_code"><?php esc_html_e( 'Authentication code', 'defyn-security-manager' ); ?></label>
-				<input type="text" name="dsm_code" id="dsm_code" class="input"
+				<label for="defsec_code"><?php esc_html_e( 'Authentication code', 'defyn-security-manager' ); ?></label>
+				<input type="text" name="defsec_code" id="defsec_code" class="input"
 				       autocomplete="one-time-code" inputmode="numeric" autofocus
 				       style="font-size:1.4em;letter-spacing:0.3em;text-align:center;" />
 			</p>
@@ -186,7 +187,7 @@ class DSM_Two_Factor {
 			</p>
 		</form>
 		<?php
-		login_footer( 'dsm_code' );
+		login_footer( 'defsec_code' );
 		exit;
 	}
 
@@ -195,7 +196,7 @@ class DSM_Two_Factor {
 	 */
 	private function issue_pending_token( int $user_id ): string {
 		$token = bin2hex( random_bytes( 16 ) );
-		set_transient( 'dsm_2fa_pending_' . $token, $user_id, self::PENDING_TTL );
+		set_transient( 'defsec_2fa_pending_' . $token, $user_id, self::PENDING_TTL );
 		return $token;
 	}
 
@@ -203,12 +204,12 @@ class DSM_Two_Factor {
 		if ( $token === '' ) {
 			return 0;
 		}
-		$user_id = (int) get_transient( 'dsm_2fa_pending_' . $token );
+		$user_id = (int) get_transient( 'defsec_2fa_pending_' . $token );
 		if ( ! $user_id ) {
 			return 0;
 		}
 		if ( $delete ) {
-			delete_transient( 'dsm_2fa_pending_' . $token );
+			delete_transient( 'defsec_2fa_pending_' . $token );
 		}
 		return $user_id;
 	}
@@ -224,7 +225,7 @@ class DSM_Two_Factor {
 
 		// Try TOTP first.
 		$secret = (string) get_user_meta( $user_id, self::META_SECRET, true );
-		if ( $secret && DSM_TOTP::verify( $secret, $code ) ) {
+		if ( $secret && DEFSEC_TOTP::verify( $secret, $code ) ) {
 			return true;
 		}
 
@@ -251,11 +252,11 @@ class DSM_Two_Factor {
 		$secret  = (string) get_user_meta( $user->ID, self::META_SECRET, true );
 
 		if ( ! $secret ) {
-			$secret = DSM_TOTP::generate_secret();
+			$secret = DEFSEC_TOTP::generate_secret();
 			update_user_meta( $user->ID, self::META_SECRET, $secret );
 		}
 
-		$uri = DSM_TOTP::provisioning_uri(
+		$uri = DEFSEC_TOTP::provisioning_uri(
 			$secret,
 			$user->user_email,
 			wp_specialchars_decode( get_bloginfo( 'name' ) )
@@ -263,9 +264,9 @@ class DSM_Two_Factor {
 
 		$backup_codes = (array) get_user_meta( $user->ID, self::META_BACKUP, true );
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only check for our own post-action redirect query flag; no state mutation here.
-		$new_codes    = isset( $_GET['dsm_show_codes'] ) ? get_transient( 'dsm_new_codes_' . $user->ID ) : null;
+		$new_codes    = isset( $_GET['defsec_show_codes'] ) ? get_transient( 'defsec_new_codes_' . $user->ID ) : null;
 
-		include DSM_PATH . 'admin/views/user-2fa-profile.php';
+		include DEFSEC_PATH . 'admin/views/user-2fa-profile.php';
 	}
 
 	public function handle_profile_save( int $user_id ): void {
@@ -273,34 +274,34 @@ class DSM_Two_Factor {
 			return;
 		}
 
-		$action = isset( $_POST['dsm_2fa_action'] ) ? sanitize_key( wp_unslash( $_POST['dsm_2fa_action'] ) ) : '';
+		$action = isset( $_POST['defsec_2fa_action'] ) ? sanitize_key( wp_unslash( $_POST['defsec_2fa_action'] ) ) : '';
 		if ( $action === '' ) {
 			return;
 		}
-		check_admin_referer( 'dsm_2fa_' . $user_id );
+		check_admin_referer( 'defsec_2fa_' . $user_id );
 
 		switch ( $action ) {
 			case 'enable':
 				$secret = (string) get_user_meta( $user_id, self::META_SECRET, true );
-				$code   = isset( $_POST['dsm_enroll_code'] ) ? sanitize_text_field( wp_unslash( $_POST['dsm_enroll_code'] ) ) : '';
-				if ( ! $secret || ! DSM_TOTP::verify( $secret, $code ) ) {
+				$code   = isset( $_POST['defsec_enroll_code'] ) ? sanitize_text_field( wp_unslash( $_POST['defsec_enroll_code'] ) ) : '';
+				if ( ! $secret || ! DEFSEC_TOTP::verify( $secret, $code ) ) {
 					add_action( 'user_profile_update_errors', static function ( $errors ) {
-						$errors->add( 'dsm_2fa', __( 'Verification code did not match. Try again.', 'defyn-security-manager' ) );
+						$errors->add( 'defsec_2fa', __( 'Verification code did not match. Try again.', 'defyn-security-manager' ) );
 					}, 10, 1 );
 					return;
 				}
 				update_user_meta( $user_id, self::META_ENABLED, 1 );
-				$plain = DSM_TOTP::generate_backup_codes();
+				$plain = DEFSEC_TOTP::generate_backup_codes();
 				$hashed = array_map( 'wp_hash_password', $plain );
 				update_user_meta( $user_id, self::META_BACKUP, $hashed );
-				set_transient( 'dsm_new_codes_' . $user_id, $plain, 600 );
+				set_transient( 'defsec_new_codes_' . $user_id, $plain, 600 );
 
-				DSM_Activity_Log::record( DSM_Activity_Log::EVT_2FA_ENROLLED, [
+				DEFSEC_Activity_Log::record( DEFSEC_Activity_Log::EVT_2FA_ENROLLED, [
 					'user_id'  => $user_id,
 				] );
 
 				add_filter( 'wp_redirect', static function ( $loc ) {
-					return add_query_arg( 'dsm_show_codes', '1', $loc );
+					return add_query_arg( 'defsec_show_codes', '1', $loc );
 				} );
 				break;
 
@@ -308,7 +309,7 @@ class DSM_Two_Factor {
 				delete_user_meta( $user_id, self::META_ENABLED );
 				delete_user_meta( $user_id, self::META_SECRET );
 				delete_user_meta( $user_id, self::META_BACKUP );
-				DSM_Activity_Log::record( DSM_Activity_Log::EVT_2FA_DISABLED, [
+				DEFSEC_Activity_Log::record( DEFSEC_Activity_Log::EVT_2FA_DISABLED, [
 					'user_id'  => $user_id,
 				] );
 				break;
@@ -317,12 +318,12 @@ class DSM_Two_Factor {
 				if ( ! self::user_has_2fa( $user_id ) ) {
 					return;
 				}
-				$plain  = DSM_TOTP::generate_backup_codes();
+				$plain  = DEFSEC_TOTP::generate_backup_codes();
 				$hashed = array_map( 'wp_hash_password', $plain );
 				update_user_meta( $user_id, self::META_BACKUP, $hashed );
-				set_transient( 'dsm_new_codes_' . $user_id, $plain, 600 );
+				set_transient( 'defsec_new_codes_' . $user_id, $plain, 600 );
 				add_filter( 'wp_redirect', static function ( $loc ) {
-					return add_query_arg( 'dsm_show_codes', '1', $loc );
+					return add_query_arg( 'defsec_show_codes', '1', $loc );
 				} );
 				break;
 		}

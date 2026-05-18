@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class DSM_Hidden_Login {
+class DEFSEC_Hidden_Login {
 
 	private bool $wp_login_php = false;
 
@@ -50,9 +50,9 @@ class DSM_Hidden_Login {
 		$path    = $request['path'];
 
 		// Allowlist enforcement: only matters for actually-hitting the hidden slug.
-		$allowlist = (array) DSM_Options::get( 'ip_allowlist', [] );
-		$ip        = dsm_client_ip();
-		$allow_ok  = empty( $allowlist ) || dsm_ip_in_list( $ip, $allowlist );
+		$allowlist = (array) DEFSEC_Options::get( 'ip_allowlist', [] );
+		$ip        = defsec_client_ip();
+		$allow_ok  = empty( $allowlist ) || defsec_ip_in_list( $ip, $allowlist );
 
 		// Hitting the hidden slug = render wp-login.php.
 		if ( $path === $slug || $path === $slug . '/' ) {
@@ -76,7 +76,7 @@ class DSM_Hidden_Login {
 				return;
 			}
 
-			DSM_Activity_Log::record( DSM_Activity_Log::EVT_HIDDEN_URL_SCAN, [
+			DEFSEC_Activity_Log::record( DEFSEC_Activity_Log::EVT_HIDDEN_URL_SCAN, [
 				'details' => [ 'target' => 'wp-login.php', 'action' => $action ],
 			] );
 			$this->respond_blocked( 'wp_login_php' );
@@ -89,7 +89,7 @@ class DSM_Hidden_Login {
 			if ( strpos( $path, 'wp-admin/admin-ajax.php' ) === 0 ) {
 				return;
 			}
-			DSM_Activity_Log::record( DSM_Activity_Log::EVT_HIDDEN_URL_SCAN, [
+			DEFSEC_Activity_Log::record( DEFSEC_Activity_Log::EVT_HIDDEN_URL_SCAN, [
 				'details' => [ 'target' => $path ],
 			] );
 			$this->respond_blocked( 'wp_admin' );
@@ -115,11 +115,11 @@ class DSM_Hidden_Login {
 	}
 
 	public function respond_blocked( string $reason ): void {
-		$mode = (string) DSM_Options::get( 'blocked_response', '404' );
+		$mode = (string) DEFSEC_Options::get( 'blocked_response', '404' );
 
 		switch ( $mode ) {
 			case 'redirect':
-				$url = (string) DSM_Options::get( 'blocked_redirect_url', '' );
+				$url = (string) DEFSEC_Options::get( 'blocked_redirect_url', '' );
 				if ( $url === '' ) {
 					$url = home_url( '/' );
 				}
@@ -156,21 +156,29 @@ class DSM_Hidden_Login {
 
 	/**
 	 * Minimal decoy login. Always-fails — POST is silently dropped.
+	 *
+	 * The CSS and JS are externalised to assets/css/fake-login.css and
+	 * assets/js/fake-login.js, served via manual <link> / <script> tags
+	 * because this output bypasses the WordPress theme + enqueue pipeline
+	 * entirely (wp_head() would never fire here).
 	 */
 	private function render_fake_login(): void {
-		$site_name = get_bloginfo( 'name' );
+		$site_name   = get_bloginfo( 'name' );
 		$nonce_token = wp_generate_password( 10, false );
+		$css_url     = DEFSEC_URL . 'assets/css/fake-login.css?v=' . rawurlencode( DEFSEC_VERSION );
+		$js_url      = DEFSEC_URL . 'assets/js/fake-login.js?v=' . rawurlencode( DEFSEC_VERSION );
 		?>
 <!doctype html>
 <html><head>
 <meta charset="utf-8" />
 <title>Log In &lsaquo; <?php echo esc_html( $site_name ); ?></title>
-<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f0f0f1;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}.box{background:#fff;padding:26px 24px;border:1px solid #c3c4c7;width:320px;box-shadow:0 1px 3px rgba(0,0,0,.04);border-radius:4px}h1{font-size:14px;text-align:center;margin:0 0 24px;color:#3c434a}label{display:block;font-size:13px;margin-bottom:6px;color:#1d2327}input[type=text],input[type=password]{width:100%;padding:8px;border:1px solid #8c8f94;border-radius:4px;margin-bottom:14px;box-sizing:border-box;font-size:14px}button{width:100%;background:#2271b1;color:#fff;border:none;padding:8px 12px;border-radius:4px;cursor:pointer;font-size:14px}.err{color:#d63638;font-size:13px;margin-bottom:12px;display:none}</style>
+<?php // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet -- This output bypasses the WP theme/enqueue pipeline; wp_head() never fires for the decoy login. Manual <link> tag is the equivalent. ?>
+<link rel="stylesheet" href="<?php echo esc_url( $css_url ); ?>" />
 </head><body>
 <div class="box">
   <h1><?php echo esc_html( $site_name ); ?></h1>
-  <div class="err" id="err">Invalid username or password.</div>
-  <form method="post" onsubmit="document.getElementById('err').style.display='block';return false;">
+  <div class="err" id="defsec-fake-err">Invalid username or password.</div>
+  <form method="post">
     <label>Username or Email Address</label>
     <input type="text" name="log" autocomplete="username" />
     <label>Password</label>
@@ -179,6 +187,8 @@ class DSM_Hidden_Login {
     <input type="hidden" name="_t" value="<?php echo esc_attr( $nonce_token ); ?>" />
   </form>
 </div>
+<?php // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript -- This output bypasses the WP theme/enqueue pipeline; wp_footer() never fires for the decoy login. Manual <script src> tag is the equivalent. ?>
+<script src="<?php echo esc_url( $js_url ); ?>"></script>
 </body></html>
 		<?php
 	}
@@ -207,7 +217,7 @@ class DSM_Hidden_Login {
 	}
 
 	public function slug(): string {
-		return (string) DSM_Options::get( 'login_slug', 'defyn-login' );
+		return (string) DEFSEC_Options::get( 'login_slug', 'defyn-login' );
 	}
 
 	public function hidden_url( array $args = [] ): string {

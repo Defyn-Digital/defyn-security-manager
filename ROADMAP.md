@@ -24,7 +24,7 @@ Features in this release:
 - Time-window access (with cross-midnight handling + emergency bypass code)
 - Activity log: every login, lockout, scan, settings change
 - Email alerts (rate-limited)
-- DSM_DISABLE kill switch for self-recovery
+- DEFSEC_DISABLE kill switch for self-recovery
 
 ---
 
@@ -69,7 +69,7 @@ with no guidance.
 4. **Optional hardening** — IP allowlist, time window (clearly marked
    "skip if unsure")
 5. **Recovery briefing** — generate emergency bypass code, copy-paste the
-   `DSM_DISABLE` line, force "I've saved this somewhere" confirmation
+   `DEFSEC_DISABLE` line, force "I've saved this somewhere" confirmation
 
 **Dashboard landing page** (replaces settings-first default):
 - Top-level menu click goes to Dashboard, not Settings
@@ -94,8 +94,8 @@ Across every existing screen, add the *why* not just the *what*.
 - **"Recommended" badges** on safe defaults.
 - **Per-tab introductions**: 1–2 paragraphs at the top of each tab —
   "What this protects against" + "How attackers exploit this when off".
-- **Always-visible recovery sidebar**: right-hand column on every BE Security
-  page with "🆘 Locked out?" + copy-paste `DSM_DISABLE` line + link to full
+- **Always-visible recovery sidebar**: right-hand column on every Defyn Security
+  page with "🆘 Locked out?" + copy-paste `DEFSEC_DISABLE` line + link to full
   recovery FAQ. So nobody panics.
 
 ### UI overhaul — Bundle C: Prevent self-lockouts
@@ -152,7 +152,7 @@ most-targeted usernames, attack pattern detection (single-IP-many-users
 vs many-IPs-one-user), exportable reports.
 
 ### Behind-proxy auto-detect
-Currently the user has to define `DSM_TRUST_PROXY` in `wp-config.php`. Could
+Currently the user has to define `DEFSEC_TRUST_PROXY` in `wp-config.php`. Could
 detect common proxy headers (`CF-Connecting-IP`, `True-Client-IP`) and offer
 a UI toggle with an explicit "I confirm this site is behind a proxy" gate
 (to avoid the spoofing risk).
@@ -181,7 +181,7 @@ WP REST sink for sending to an external SIEM.
   any confusion.
 - After v1.0.0 approval + SVN push, branch `develop` and do v1.1.0 work
   there. Merge to `main` + tag when ready to submit an update.
-- WordPress.org updates: bump `Version:` header + `DSM_VERSION` constant +
+- WordPress.org updates: bump `Version:` header + `DEFSEC_VERSION` constant +
   `Stable tag:` in readme.txt + `== Changelog ==` entry, then `svn ci` to
   the WP.org SVN repo. The GitHub release workflow still publishes a
   backup zip to GitHub Releases.

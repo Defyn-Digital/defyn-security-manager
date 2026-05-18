@@ -7,11 +7,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class DSM_Deactivator {
+class DEFSEC_Deactivator {
 	public static function deactivate(): void {
-		$timestamp = wp_next_scheduled( 'dsm_daily_cleanup' );
+		$timestamp = wp_next_scheduled( 'defsec_daily_cleanup' );
 		if ( $timestamp ) {
-			wp_unschedule_event( $timestamp, 'dsm_daily_cleanup' );
+			wp_unschedule_event( $timestamp, 'defsec_daily_cleanup' );
 		}
 		flush_rewrite_rules();
 	}

@@ -12,10 +12,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Why: REMOTE_ADDR alone is wrong behind Cloudflare/load balancers, but blindly trusting
  * X-Forwarded-For lets any attacker spoof their IP. Site owners opt-in by defining
- * DSM_TRUST_PROXY in wp-config.php once they've vetted their proxy chain.
+ * DEFSEC_TRUST_PROXY in wp-config.php once they've vetted their proxy chain.
  */
-function dsm_client_ip(): string {
-	if ( defined( 'DSM_TRUST_PROXY' ) && DSM_TRUST_PROXY ) {
+function defsec_client_ip(): string {
+	if ( defined( 'DEFSEC_TRUST_PROXY' ) && DEFSEC_TRUST_PROXY ) {
 		foreach ( [ 'HTTP_CF_CONNECTING_IP', 'HTTP_X_REAL_IP', 'HTTP_X_FORWARDED_FOR' ] as $header ) {
 			if ( ! empty( $_SERVER[ $header ] ) ) {
 				$candidate = explode( ',', sanitize_text_field( wp_unslash( $_SERVER[ $header ] ) ) )[0];
@@ -34,7 +34,7 @@ function dsm_client_ip(): string {
 /**
  * Check whether the given IP is contained in a list of IPs or CIDR ranges.
  */
-function dsm_ip_in_list( string $ip, array $list ): bool {
+function defsec_ip_in_list( string $ip, array $list ): bool {
 	if ( empty( $list ) ) {
 		return false;
 	}
@@ -83,7 +83,7 @@ function dsm_ip_in_list( string $ip, array $list ): bool {
 /**
  * Generate a cryptographically random alphanumeric string suitable for slugs/keys.
  */
-function dsm_random_slug( int $length = 16 ): string {
+function defsec_random_slug( int $length = 16 ): string {
 	$bytes = random_bytes( max( 8, $length ) );
 	return substr( strtolower( base_convert( bin2hex( $bytes ), 16, 36 ) ), 0, $length );
 }
@@ -93,7 +93,7 @@ function dsm_random_slug( int $length = 16 ): string {
  *
  * Restricted to lowercase letters, numbers and hyphens; min 4 chars to avoid trivial guesses.
  */
-function dsm_sanitize_slug( string $slug ): string {
+function defsec_sanitize_slug( string $slug ): string {
 	$slug = strtolower( trim( $slug ) );
 	$slug = preg_replace( '/[^a-z0-9\-]/', '', $slug );
 	$slug = trim( $slug, '-' );
@@ -103,7 +103,7 @@ function dsm_sanitize_slug( string $slug ): string {
 /**
  * Current site timezone object (respects WP timezone settings).
  */
-function dsm_site_timezone(): DateTimeZone {
+function defsec_site_timezone(): DateTimeZone {
 	$tz_string = get_option( 'timezone_string' );
 	if ( $tz_string ) {
 		try {

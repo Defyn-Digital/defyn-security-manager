@@ -11,21 +11,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class DSM_Email_Alerts {
+class DEFSEC_Email_Alerts {
 
-	const RATE_LIMIT_KEY     = 'dsm_alert_window';
+	const RATE_LIMIT_KEY     = 'defsec_alert_window';
 	const RATE_LIMIT_WINDOW  = 600;  // 10 minutes
 	const RATE_LIMIT_MAX     = 10;   // max alerts per window
 
 	public function boot(): void {
-		add_action( 'dsm_event_recorded', [ $this, 'on_event' ], 10, 3 );
+		add_action( 'defsec_event_recorded', [ $this, 'on_event' ], 10, 3 );
 	}
 
 	public function on_event( string $event, array $row, int $id ): void {
-		if ( ! DSM_Options::get( 'alerts_enabled' ) ) {
+		if ( ! DEFSEC_Options::get( 'alerts_enabled' ) ) {
 			return;
 		}
-		$to = DSM_Options::get( 'alerts_email' );
+		$to = DEFSEC_Options::get( 'alerts_email' );
 		if ( ! is_email( $to ) ) {
 			return;
 		}
@@ -35,24 +35,24 @@ class DSM_Email_Alerts {
 		$body    = '';
 
 		switch ( $event ) {
-			case DSM_Activity_Log::EVT_LOCKOUT:
-				if ( DSM_Options::get( 'alerts_on_lockout' ) ) {
+			case DEFSEC_Activity_Log::EVT_LOCKOUT:
+				if ( DEFSEC_Options::get( 'alerts_on_lockout' ) ) {
 					$send    = true;
 					$subject = sprintf( '[%s] IP locked out: %s', $this->site_name(), $row['ip'] );
 					$body    = "An IP has been locked out after repeated failed login attempts.\n\n"
 						. "IP: {$row['ip']}\nUsername tried: {$row['username']}\nUser-Agent: {$row['user_agent']}\nTime (UTC): {$row['created_at']}\n";
 				}
 				break;
-			case DSM_Activity_Log::EVT_HIDDEN_URL_SCAN:
-				if ( DSM_Options::get( 'alerts_on_scan' ) ) {
+			case DEFSEC_Activity_Log::EVT_HIDDEN_URL_SCAN:
+				if ( DEFSEC_Options::get( 'alerts_on_scan' ) ) {
 					$send    = true;
 					$subject = sprintf( '[%s] Someone hit the original /wp-admin', $this->site_name() );
 					$body    = "Someone requested a hidden WordPress login URL.\n\n"
 						. "IP: {$row['ip']}\nRequest: {$row['request_uri']}\nUser-Agent: {$row['user_agent']}\nTime (UTC): {$row['created_at']}\n";
 				}
 				break;
-			case DSM_Activity_Log::EVT_LOGIN_SUCCESS:
-				if ( ! DSM_Options::get( 'alerts_on_new_ip_login' ) ) {
+			case DEFSEC_Activity_Log::EVT_LOGIN_SUCCESS:
+				if ( ! DEFSEC_Options::get( 'alerts_on_new_ip_login' ) ) {
 					break;
 				}
 				$details = is_string( $row['details'] ) ? json_decode( $row['details'], true ) : [];

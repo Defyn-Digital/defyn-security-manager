@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class DSM_TOTP {
+class DEFSEC_TOTP {
 
 	const PERIOD = 30;
 	const DIGITS = 6;

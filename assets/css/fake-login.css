@@ -1,0 +1,65 @@
+/**
+ * Styles for the decoy login page rendered when blocked_response = 'fake'.
+ *
+ * Emitted via a manual <link> tag (not wp_enqueue_style) because the fake
+ * login is rendered outside the WordPress theme/enqueue pipeline — by the
+ * time render_fake_login() runs, wp_head() will never fire.
+ */
+body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+	background: #f0f0f1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 100vh;
+	margin: 0;
+}
+.box {
+	background: #fff;
+	padding: 26px 24px;
+	border: 1px solid #c3c4c7;
+	width: 320px;
+	box-shadow: 0 1px 3px rgba( 0, 0, 0, .04 );
+	border-radius: 4px;
+}
+h1 {
+	font-size: 14px;
+	text-align: center;
+	margin: 0 0 24px;
+	color: #3c434a;
+}
+label {
+	display: block;
+	font-size: 13px;
+	margin-bottom: 6px;
+	color: #1d2327;
+}
+input[type=text],
+input[type=password] {
+	width: 100%;
+	padding: 8px;
+	border: 1px solid #8c8f94;
+	border-radius: 4px;
+	margin-bottom: 14px;
+	box-sizing: border-box;
+	font-size: 14px;
+}
+button {
+	width: 100%;
+	background: #2271b1;
+	color: #fff;
+	border: none;
+	padding: 8px 12px;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 14px;
+}
+.err {
+	color: #d63638;
+	font-size: 13px;
+	margin-bottom: 12px;
+	display: none;
+}
+.err.visible {
+	display: block;
+}

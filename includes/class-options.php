@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class DSM_Options {
+class DEFSEC_Options {
 
 	public static function defaults(): array {
 		return [
@@ -47,7 +47,7 @@ class DSM_Options {
 	}
 
 	public static function all(): array {
-		$stored = get_option( DSM_OPTION, [] );
+		$stored = get_option( DEFSEC_OPTION, [] );
 		if ( ! is_array( $stored ) ) {
 			$stored = [];
 		}
@@ -62,11 +62,11 @@ class DSM_Options {
 	public static function update( array $partial ): bool {
 		$current = self::all();
 		$merged  = array_merge( $current, self::sanitize( $partial ) );
-		return update_option( DSM_OPTION, $merged );
+		return update_option( DEFSEC_OPTION, $merged );
 	}
 
 	public static function replace( array $values ): bool {
-		return update_option( DSM_OPTION, self::sanitize( $values ) );
+		return update_option( DEFSEC_OPTION, self::sanitize( $values ) );
 	}
 
 	/**
@@ -76,7 +76,7 @@ class DSM_Options {
 		$out = [];
 
 		if ( isset( $input['login_slug'] ) ) {
-			$slug = dsm_sanitize_slug( (string) $input['login_slug'] );
+			$slug = defsec_sanitize_slug( (string) $input['login_slug'] );
 			if ( strlen( $slug ) >= 4 ) {
 				$out['login_slug'] = $slug;
 			}

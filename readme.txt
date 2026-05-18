@@ -1,5 +1,5 @@
 === Defyn Security Manager ===
-Contributors: defyn
+Contributors: defyndigital
 Tags: hide login, security, brute force, two factor, login url
 Requires at least: 6.2
 Tested up to: 6.9
@@ -53,31 +53,31 @@ Defyn Security Manager hardens the WordPress login surface by hiding it behind a
 
 **Recovery**
 
-If you ever lock yourself out, define `DSM_DISABLE` in `wp-config.php` to bypass all interception until you can fix the cause. The plugin shows a persistent yellow notice in the admin while the kill switch is active so you don't forget to remove it.
+If you ever lock yourself out, define `DEFSEC_DISABLE` in `wp-config.php` to bypass all interception until you can fix the cause. The plugin shows a persistent yellow notice in the admin while the kill switch is active so you don't forget to remove it.
 
 == Installation ==
 
 1. WordPress admin → **Plugins → Add New → Search** for "Defyn Security Manager".
 2. Click **Install Now**, then **Activate**.
-3. Go to **BE Security → Settings → Hidden URL** and either keep the random slug the plugin generated for you, or change it to something memorable.
+3. Go to **Defyn Security → Settings → Hidden URL** and either keep the random slug the plugin generated for you, or change it to something memorable.
 4. **Bookmark the hidden URL right now** — you'll lose access to `/wp-admin` the moment you save settings, and the bookmark is how you log back in.
 
 Recommended next steps:
 
-* **BE Security → Settings → Security**: turn on the throttle (it's on by default with sensible thresholds).
-* **BE Security → Settings → Two-Factor**: enable 2FA across the site and require it for the Administrator role. Each admin then enrols from their **Users → Profile** page.
+* **Defyn Security → Settings → Security**: turn on the throttle (it's on by default with sensible thresholds).
+* **Defyn Security → Settings → Two-Factor**: enable 2FA across the site and require it for the Administrator role. Each admin then enrols from their **Users → Profile** page.
 
 == Frequently Asked Questions ==
 
 = I locked myself out. How do I recover? =
 
-Add `define( 'DSM_DISABLE', true );` to your site's `wp-config.php`. That bypasses all interception, so `/wp-admin` and `/wp-login.php` work like a vanilla WordPress install. Log in, fix the cause (clear the throttle, disable 2FA for your user, etc.), then remove the line from `wp-config.php`.
+Add `define( 'DEFSEC_DISABLE', true );` to your site's `wp-config.php`. That bypasses all interception, so `/wp-admin` and `/wp-login.php` work like a vanilla WordPress install. Log in, fix the cause (clear the throttle, disable 2FA for your user, etc.), then remove the line from `wp-config.php`.
 
 If you can't edit `wp-config.php`: rename the plugin folder via SFTP from `defyn-security-manager` to `defyn-security-manager.disabled`. WordPress will silently deactivate it on the next page load. Your settings and 2FA data are preserved; rename back to re-enable.
 
 = Does it work behind Cloudflare or a load balancer? =
 
-Yes. Define `DSM_TRUST_PROXY` in `wp-config.php` so the plugin honors `CF-Connecting-IP` / `X-Real-IP` / `X-Forwarded-For` for client-IP detection. Only enable this when you're actually behind a known proxy — otherwise attackers can spoof their IP.
+Yes. Define `DEFSEC_TRUST_PROXY` in `wp-config.php` so the plugin honors `CF-Connecting-IP` / `X-Real-IP` / `X-Forwarded-For` for client-IP detection. Only enable this when you're actually behind a known proxy — otherwise attackers can spoof their IP.
 
 = Which authenticator apps are supported for 2FA? =
 
@@ -87,7 +87,7 @@ Any RFC 6238 TOTP app: Google Authenticator, Authy, 1Password, Microsoft Authent
 
 If you saved your backup codes when you enrolled, enter one of them in place of a 6-digit code at login. Each backup code works once.
 
-If you didn't save backup codes: ask another administrator to disable 2FA on your user via **Users → All Users → your user → Edit**. If you're the only administrator, use the `DSM_DISABLE` recovery path above.
+If you didn't save backup codes: ask another administrator to disable 2FA on your user via **Users → All Users → your user → Edit**. If you're the only administrator, use the `DEFSEC_DISABLE` recovery path above.
 
 = Can I use this on a multisite network? =
 

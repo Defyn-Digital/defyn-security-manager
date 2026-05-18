@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class DSM_Activity_Log {
+class DEFSEC_Activity_Log {
 
 	const EVT_LOGIN_SUCCESS    = 'login_success';
 	const EVT_LOGIN_FAILED     = 'login_failed';
@@ -25,7 +25,7 @@ class DSM_Activity_Log {
 
 	public static function table(): string {
 		global $wpdb;
-		return $wpdb->prefix . 'dsm_log';
+		return $wpdb->prefix . 'defsec_log';
 	}
 
 	/**
@@ -37,7 +37,7 @@ class DSM_Activity_Log {
 		$row = [
 			'created_at'  => current_time( 'mysql', true ),
 			'event_type'  => substr( $event_type, 0, 40 ),
-			'ip'          => $context['ip'] ?? dsm_client_ip(),
+			'ip'          => $context['ip'] ?? defsec_client_ip(),
 			'username'    => substr( (string) ( $context['username'] ?? '' ), 0, 190 ),
 			'user_id'     => (int) ( $context['user_id'] ?? 0 ),
 			'user_agent'  => substr( isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '', 0, 255 ),
@@ -53,7 +53,7 @@ class DSM_Activity_Log {
 		$wpdb->insert( self::table(), $row );
 		$id = (int) $wpdb->insert_id;
 
-		do_action( 'dsm_event_recorded', $event_type, $row, $id );
+		do_action( 'defsec_event_recorded', $event_type, $row, $id );
 
 		return $id;
 	}
@@ -121,7 +121,7 @@ class DSM_Activity_Log {
 	 */
 	public static function prune(): int {
 		global $wpdb;
-		$days = (int) DSM_Options::get( 'log_retention_days', 30 );
+		$days = (int) DEFSEC_Options::get( 'log_retention_days', 30 );
 		$cutoff = gmdate( 'Y-m-d H:i:s', time() - $days * DAY_IN_SECONDS );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Cron pruning of custom plugin table.
 		return (int) $wpdb->query( $wpdb->prepare(

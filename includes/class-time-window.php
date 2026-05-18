@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class DSM_Time_Window {
+class DEFSEC_Time_Window {
 
 	public function boot(): void {
 		// Priority 95: must run AFTER wp_authenticate_username_password (priority 20),
@@ -26,7 +26,7 @@ class DSM_Time_Window {
 	}
 
 	public function guard( $user, $username, $password ) {
-		if ( ! DSM_Options::get( 'time_window_enabled' ) ) {
+		if ( ! DEFSEC_Options::get( 'time_window_enabled' ) ) {
 			return $user;
 		}
 		if ( empty( $username ) && empty( $password ) ) {
@@ -39,27 +39,27 @@ class DSM_Time_Window {
 			return $user;
 		}
 
-		DSM_Activity_Log::record( DSM_Activity_Log::EVT_TIME_WINDOW_DENY, [
+		DEFSEC_Activity_Log::record( DEFSEC_Activity_Log::EVT_TIME_WINDOW_DENY, [
 			'username' => $username,
 		] );
 
 		return new WP_Error(
-			'dsm_time_window',
+			'defsec_time_window',
 			__( '<strong>Login disabled.</strong> Backend access is restricted at this time.', 'defyn-security-manager' )
 		);
 	}
 
 	private function is_within_window(): bool {
-		$tz   = dsm_site_timezone();
+		$tz   = defsec_site_timezone();
 		$now  = new DateTime( 'now', $tz );
 		$day  = (int) $now->format( 'w' );  // 0=Sun..6=Sat
-		$days = (array) DSM_Options::get( 'time_window_days', [] );
+		$days = (array) DEFSEC_Options::get( 'time_window_days', [] );
 		if ( ! in_array( $day, array_map( 'intval', $days ), true ) ) {
 			return false;
 		}
 
-		$start_str = (string) DSM_Options::get( 'time_window_start', '08:00' );
-		$end_str   = (string) DSM_Options::get( 'time_window_end', '20:00' );
+		$start_str = (string) DEFSEC_Options::get( 'time_window_start', '08:00' );
+		$end_str   = (string) DEFSEC_Options::get( 'time_window_end', '20:00' );
 
 		$today = $now->format( 'Y-m-d' );
 		$start = DateTime::createFromFormat( 'Y-m-d H:i', "$today $start_str", $tz );
@@ -77,7 +77,7 @@ class DSM_Time_Window {
 	}
 
 	private function bypass_supplied(): bool {
-		$stored = (string) DSM_Options::get( 'emergency_bypass_code', '' );
+		$stored = (string) DEFSEC_Options::get( 'emergency_bypass_code', '' );
 		if ( $stored === '' ) {
 			return false;
 		}

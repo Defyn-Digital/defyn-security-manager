@@ -1,30 +1,34 @@
 <?php
 /**
  * Activity log table. Variables in scope: $rows, $total, $filters, $page, $per_page.
+ *
+ * phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
+ * -- This file is `include`d from DEFSEC_Admin::render_log_page(), so every
+ * variable declared here is method-scoped, not truly global.
  */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 $event_labels = [
-	DSM_Activity_Log::EVT_LOGIN_SUCCESS    => __( 'Login success', 'defyn-security-manager' ),
-	DSM_Activity_Log::EVT_LOGIN_FAILED     => __( 'Login failed', 'defyn-security-manager' ),
-	DSM_Activity_Log::EVT_LOCKOUT          => __( 'IP locked out', 'defyn-security-manager' ),
-	DSM_Activity_Log::EVT_HIDDEN_URL_SCAN  => __( 'Hidden URL scan', 'defyn-security-manager' ),
-	DSM_Activity_Log::EVT_TIME_WINDOW_DENY => __( 'Outside time window', 'defyn-security-manager' ),
-	DSM_Activity_Log::EVT_2FA_FAILED       => __( '2FA failed', 'defyn-security-manager' ),
-	DSM_Activity_Log::EVT_2FA_SUCCESS      => __( '2FA success', 'defyn-security-manager' ),
-	DSM_Activity_Log::EVT_2FA_ENROLLED     => __( '2FA enrolled', 'defyn-security-manager' ),
-	DSM_Activity_Log::EVT_2FA_DISABLED     => __( '2FA disabled', 'defyn-security-manager' ),
-	DSM_Activity_Log::EVT_SETTINGS_CHANGED => __( 'Settings changed', 'defyn-security-manager' ),
+	DEFSEC_Activity_Log::EVT_LOGIN_SUCCESS    => __( 'Login success', 'defyn-security-manager' ),
+	DEFSEC_Activity_Log::EVT_LOGIN_FAILED     => __( 'Login failed', 'defyn-security-manager' ),
+	DEFSEC_Activity_Log::EVT_LOCKOUT          => __( 'IP locked out', 'defyn-security-manager' ),
+	DEFSEC_Activity_Log::EVT_HIDDEN_URL_SCAN  => __( 'Hidden URL scan', 'defyn-security-manager' ),
+	DEFSEC_Activity_Log::EVT_TIME_WINDOW_DENY => __( 'Outside time window', 'defyn-security-manager' ),
+	DEFSEC_Activity_Log::EVT_2FA_FAILED       => __( '2FA failed', 'defyn-security-manager' ),
+	DEFSEC_Activity_Log::EVT_2FA_SUCCESS      => __( '2FA success', 'defyn-security-manager' ),
+	DEFSEC_Activity_Log::EVT_2FA_ENROLLED     => __( '2FA enrolled', 'defyn-security-manager' ),
+	DEFSEC_Activity_Log::EVT_2FA_DISABLED     => __( '2FA disabled', 'defyn-security-manager' ),
+	DEFSEC_Activity_Log::EVT_SETTINGS_CHANGED => __( 'Settings changed', 'defyn-security-manager' ),
 ];
 
 $total_pages = max( 1, (int) ceil( $total / $per_page ) );
-$base_url    = admin_url( 'admin.php?page=' . DSM_SLUG . '-log' );
+$base_url    = admin_url( 'admin.php?page=' . DEFSEC_SLUG . '-log' );
 ?>
 <div class="wrap defyn-bem-wrap">
 	<h1><?php esc_html_e( 'Activity Log', 'defyn-security-manager' ); ?></h1>
 
 	<form method="get" style="margin:18px 0;">
-		<input type="hidden" name="page" value="<?php echo esc_attr( DSM_SLUG . '-log' ); ?>" />
+		<input type="hidden" name="page" value="<?php echo esc_attr( DEFSEC_SLUG . '-log' ); ?>" />
 		<select name="event">
 			<option value=""><?php esc_html_e( 'All events', 'defyn-security-manager' ); ?></option>
 			<?php foreach ( $event_labels as $k => $label ) : ?>

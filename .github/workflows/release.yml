@@ -43,7 +43,7 @@ jobs:
       - name: Verify plugin header matches tag
         run: |
           HEADER_VERSION=$(awk '/^[[:space:]]*\*[[:space:]]*Version:/ { print $3; exit }' "${{ env.PLUGIN_SLUG }}.php")
-          CONST_VERSION=$(awk -F"'" '/define\([[:space:]]*'\''DSM_VERSION'\''/ { print $4; exit }' "${{ env.PLUGIN_SLUG }}.php")
+          CONST_VERSION=$(awk -F"'" '/define\([[:space:]]*'\''DEFSEC_VERSION'\''/ { print $4; exit }' "${{ env.PLUGIN_SLUG }}.php")
           echo "Tag version:    ${{ steps.meta.outputs.version }}"
           echo "Header version: $HEADER_VERSION"
           echo "Const version:  $CONST_VERSION"
@@ -52,7 +52,7 @@ jobs:
             exit 1
           fi
           if [ "$CONST_VERSION" != "${{ steps.meta.outputs.version }}" ]; then
-            echo "::error::DSM_VERSION constant ($CONST_VERSION) does not match tag (${{ steps.meta.outputs.version }}). Bump the constant in ${{ env.PLUGIN_SLUG }}.php before tagging."
+            echo "::error::DEFSEC_VERSION constant ($CONST_VERSION) does not match tag (${{ steps.meta.outputs.version }}). Bump the constant in ${{ env.PLUGIN_SLUG }}.php before tagging."
             exit 1
           fi
 
@@ -143,4 +143,4 @@ jobs:
 
             **Install via this zip:** download the attached file, then **Plugins → Add New → Upload Plugin** → upload → Activate.
 
-            **Recovery:** if you lock yourself out, add `define( 'DSM_DISABLE', true );` to `wp-config.php`. See readme.txt for full recovery procedures.
+            **Recovery:** if you lock yourself out, add `define( 'DEFSEC_DISABLE', true );` to `wp-config.php`. See readme.txt for full recovery procedures.

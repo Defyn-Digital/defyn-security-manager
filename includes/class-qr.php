@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class DSM_QR {
+class DEFSEC_QR {
 
 	/**
 	 * QR version data for byte mode, error correction level L.

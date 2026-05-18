@@ -7,24 +7,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class DSM_Activator {
+class DEFSEC_Activator {
 
 	const DB_VERSION = '1';
 
 	public static function activate(): void {
 		self::install_tables();
 
-		$existing = get_option( DSM_OPTION );
+		$existing = get_option( DEFSEC_OPTION );
 		if ( ! is_array( $existing ) || empty( $existing ) ) {
-			$defaults = DSM_Options::defaults();
+			$defaults = DEFSEC_Options::defaults();
 			// First install: randomize the slug so the URL isn't predictable.
-			$defaults['login_slug'] = 'be-' . dsm_random_slug( 10 );
+			$defaults['login_slug'] = 'be-' . defsec_random_slug( 10 );
 			$defaults['alerts_email'] = get_option( 'admin_email' );
-			update_option( DSM_OPTION, $defaults );
+			update_option( DEFSEC_OPTION, $defaults );
 		}
 
-		if ( ! wp_next_scheduled( 'dsm_daily_cleanup' ) ) {
-			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'dsm_daily_cleanup' );
+		if ( ! wp_next_scheduled( 'defsec_daily_cleanup' ) ) {
+			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'defsec_daily_cleanup' );
 		}
 
 		flush_rewrite_rules();
@@ -35,8 +35,8 @@ class DSM_Activator {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
 		$charset = $wpdb->get_charset_collate();
-		$log     = $wpdb->prefix . 'dsm_log';
-		$lock    = $wpdb->prefix . 'dsm_lockouts';
+		$log     = $wpdb->prefix . 'defsec_log';
+		$lock    = $wpdb->prefix . 'defsec_lockouts';
 
 		$sql_log = "CREATE TABLE $log (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -69,6 +69,6 @@ class DSM_Activator {
 		dbDelta( $sql_log );
 		dbDelta( $sql_lock );
 
-		update_option( 'dsm_db_version', self::DB_VERSION );
+		update_option( 'defsec_db_version', self::DB_VERSION );
 	}
 }

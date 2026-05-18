@@ -17,33 +17,33 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'DSM_VERSION', '1.0.0' );
-define( 'DSM_FILE', __FILE__ );
-define( 'DSM_PATH', plugin_dir_path( __FILE__ ) );
-define( 'DSM_URL', plugin_dir_url( __FILE__ ) );
-define( 'DSM_BASENAME', plugin_basename( __FILE__ ) );
-define( 'DSM_SLUG', 'defyn-security-manager' );
-define( 'DSM_OPTION', 'dsm_settings' );
+define( 'DEFSEC_VERSION', '1.0.0' );
+define( 'DEFSEC_FILE', __FILE__ );
+define( 'DEFSEC_PATH', plugin_dir_path( __FILE__ ) );
+define( 'DEFSEC_URL', plugin_dir_url( __FILE__ ) );
+define( 'DEFSEC_BASENAME', plugin_basename( __FILE__ ) );
+define( 'DEFSEC_SLUG', 'defyn-security-manager' );
+define( 'DEFSEC_OPTION', 'defsec_settings' );
 
-require_once DSM_PATH . 'includes/helpers.php';
-require_once DSM_PATH . 'includes/class-options.php';
-require_once DSM_PATH . 'includes/class-activity-log.php';
-require_once DSM_PATH . 'includes/class-email-alerts.php';
-require_once DSM_PATH . 'includes/class-throttle.php';
-require_once DSM_PATH . 'includes/class-time-window.php';
-require_once DSM_PATH . 'includes/totp.php';
-require_once DSM_PATH . 'includes/class-qr.php';
-require_once DSM_PATH . 'includes/class-two-factor.php';
-require_once DSM_PATH . 'includes/class-hidden-login.php';
-require_once DSM_PATH . 'includes/class-api-guard.php';
-require_once DSM_PATH . 'includes/class-activator.php';
-require_once DSM_PATH . 'includes/class-deactivator.php';
-require_once DSM_PATH . 'admin/class-admin.php';
-require_once DSM_PATH . 'includes/class-plugin.php';
+require_once DEFSEC_PATH . 'includes/helpers.php';
+require_once DEFSEC_PATH . 'includes/class-options.php';
+require_once DEFSEC_PATH . 'includes/class-activity-log.php';
+require_once DEFSEC_PATH . 'includes/class-email-alerts.php';
+require_once DEFSEC_PATH . 'includes/class-throttle.php';
+require_once DEFSEC_PATH . 'includes/class-time-window.php';
+require_once DEFSEC_PATH . 'includes/totp.php';
+require_once DEFSEC_PATH . 'includes/class-qr.php';
+require_once DEFSEC_PATH . 'includes/class-two-factor.php';
+require_once DEFSEC_PATH . 'includes/class-hidden-login.php';
+require_once DEFSEC_PATH . 'includes/class-api-guard.php';
+require_once DEFSEC_PATH . 'includes/class-activator.php';
+require_once DEFSEC_PATH . 'includes/class-deactivator.php';
+require_once DEFSEC_PATH . 'admin/class-admin.php';
+require_once DEFSEC_PATH . 'includes/class-plugin.php';
 
-register_activation_hook( __FILE__, [ 'DSM_Activator', 'activate' ] );
-register_deactivation_hook( __FILE__, [ 'DSM_Deactivator', 'deactivate' ] );
+register_activation_hook( __FILE__, [ 'DEFSEC_Activator', 'activate' ] );
+register_deactivation_hook( __FILE__, [ 'DEFSEC_Deactivator', 'deactivate' ] );
 
 add_action( 'plugins_loaded', static function () {
-	DSM_Plugin::instance()->boot();
+	DEFSEC_Plugin::instance()->boot();
 }, 1 );

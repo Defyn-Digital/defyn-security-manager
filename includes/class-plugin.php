@@ -9,17 +9,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class DSM_Plugin {
+class DEFSEC_Plugin {
 
 	private static ?self $instance = null;
 
-	public DSM_Hidden_Login $hidden_login;
-	public DSM_Throttle     $throttle;
-	public DSM_Time_Window  $time_window;
-	public DSM_Two_Factor   $two_factor;
-	public DSM_API_Guard    $api_guard;
-	public DSM_Email_Alerts $alerts;
-	public DSM_Admin        $admin;
+	public DEFSEC_Hidden_Login $hidden_login;
+	public DEFSEC_Throttle     $throttle;
+	public DEFSEC_Time_Window  $time_window;
+	public DEFSEC_Two_Factor   $two_factor;
+	public DEFSEC_API_Guard    $api_guard;
+	public DEFSEC_Email_Alerts $alerts;
+	public DEFSEC_Admin        $admin;
 
 	public static function instance(): self {
 		if ( ! self::$instance ) {
@@ -29,13 +29,13 @@ class DSM_Plugin {
 	}
 
 	private function __construct() {
-		$this->hidden_login = new DSM_Hidden_Login();
-		$this->throttle     = new DSM_Throttle();
-		$this->time_window  = new DSM_Time_Window();
-		$this->two_factor   = new DSM_Two_Factor();
-		$this->api_guard    = new DSM_API_Guard();
-		$this->alerts       = new DSM_Email_Alerts();
-		$this->admin        = new DSM_Admin();
+		$this->hidden_login = new DEFSEC_Hidden_Login();
+		$this->throttle     = new DEFSEC_Throttle();
+		$this->time_window  = new DEFSEC_Time_Window();
+		$this->two_factor   = new DEFSEC_Two_Factor();
+		$this->api_guard    = new DEFSEC_API_Guard();
+		$this->alerts       = new DEFSEC_Email_Alerts();
+		$this->admin        = new DEFSEC_Admin();
 	}
 
 	public function boot(): void {
@@ -75,18 +75,18 @@ class DSM_Plugin {
 		}
 
 		// Daily housekeeping cron — prune activity log + expired lockout rows.
-		add_action( 'dsm_daily_cleanup', [ $this, 'run_daily_cleanup' ] );
+		add_action( 'defsec_daily_cleanup', [ $this, 'run_daily_cleanup' ] );
 	}
 
 	/**
-	 * Emergency kill switch. When `DSM_DISABLE` is defined and truthy in
+	 * Emergency kill switch. When `DEFSEC_DISABLE` is defined and truthy in
 	 * wp-config.php, the plugin skips all auth-interception so /wp-admin and
 	 * /wp-login.php behave like a vanilla WordPress install. Admin UI, activity
 	 * log, alerts, and updates stay on so the operator can fix the cause and
 	 * remove the constant.
 	 */
 	public static function is_disabled(): bool {
-		return defined( 'DSM_DISABLE' ) && DSM_DISABLE;
+		return defined( 'DEFSEC_DISABLE' ) && DEFSEC_DISABLE;
 	}
 
 	public function render_disabled_notice(): void {
@@ -94,7 +94,7 @@ class DSM_Plugin {
 			return;
 		}
 		echo '<div class="notice notice-warning"><p>'
-			. wp_kses_post( __( '<strong>Defyn Security Manager kill switch is active.</strong> All security guards (hidden URL, throttle, time window, 2FA) are bypassed because <code>DSM_DISABLE</code> is defined in <code>wp-config.php</code>. Remove that line from <code>wp-config.php</code> once you have finished recovery.', 'defyn-security-manager' ) )
+			. wp_kses_post( __( '<strong>Defyn Security Manager kill switch is active.</strong> All security guards (hidden URL, throttle, time window, 2FA) are bypassed because <code>DEFSEC_DISABLE</code> is defined in <code>wp-config.php</code>. Remove that line from <code>wp-config.php</code> once you have finished recovery.', 'defyn-security-manager' ) )
 			. '</p></div>';
 	}
 
@@ -104,23 +104,23 @@ class DSM_Plugin {
 	 * flooding the log on every admin page hit.
 	 */
 	private function log_disabled_mode_once(): void {
-		$marker = 'dsm_disable_logged_at';
+		$marker = 'defsec_disable_logged_at';
 		$last   = (int) get_transient( $marker );
 		if ( time() - $last < HOUR_IN_SECONDS ) {
 			return;
 		}
 		set_transient( $marker, time(), HOUR_IN_SECONDS );
-		DSM_Activity_Log::record( DSM_Activity_Log::EVT_SETTINGS_CHANGED, [
+		DEFSEC_Activity_Log::record( DEFSEC_Activity_Log::EVT_SETTINGS_CHANGED, [
 			'user_id' => get_current_user_id(),
-			'details' => [ 'kill_switch' => 'DSM_DISABLE active' ],
+			'details' => [ 'kill_switch' => 'DEFSEC_DISABLE active' ],
 		] );
 	}
 
 	public function on_login_success( string $user_login, WP_User $user ): void {
-		$ip      = dsm_client_ip();
-		$new_ip  = ! DSM_Activity_Log::user_has_logged_in_from_ip( $user->ID, $ip );
+		$ip      = defsec_client_ip();
+		$new_ip  = ! DEFSEC_Activity_Log::user_has_logged_in_from_ip( $user->ID, $ip );
 
-		DSM_Activity_Log::record( DSM_Activity_Log::EVT_LOGIN_SUCCESS, [
+		DEFSEC_Activity_Log::record( DEFSEC_Activity_Log::EVT_LOGIN_SUCCESS, [
 			'ip'       => $ip,
 			'username' => $user_login,
 			'user_id'  => $user->ID,
@@ -129,7 +129,7 @@ class DSM_Plugin {
 	}
 
 	public function run_daily_cleanup(): void {
-		DSM_Activity_Log::prune();
-		DSM_Throttle::prune();
+		DEFSEC_Activity_Log::prune();
+		DEFSEC_Throttle::prune();
 	}
 }

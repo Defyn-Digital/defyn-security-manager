@@ -2,12 +2,16 @@
 /**
  * 2FA enrollment UI shown on the user profile page.
  * Variables in scope: $user, $enabled, $secret, $uri, $backup_codes, $new_codes
+ *
+ * phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
+ * -- This file is `include`d from DEFSEC_Two_Factor::render_user_profile_section(),
+ * so every variable declared here is method-scoped, not truly global.
  */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 ?>
 <h2><?php esc_html_e( 'Two-factor authentication (Defyn)', 'defyn-security-manager' ); ?></h2>
 
-<?php wp_nonce_field( 'dsm_2fa_' . $user->ID ); ?>
+<?php wp_nonce_field( 'defsec_2fa_' . $user->ID ); ?>
 
 <?php if ( $new_codes && is_array( $new_codes ) ) : ?>
 	<div class="notice notice-warning inline" style="padding:12px;">
@@ -19,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 <table class="form-table" role="presentation">
 	<?php if ( ! $enabled ) :
-		$qr_svg = DSM_QR::svg( $uri, 5, 4 );  // 5px per module, 4-module quiet zone
+		$qr_svg = DEFSEC_QR::svg( $uri, 5, 4 );  // 5px per module, 4-module quiet zone
 		?>
 		<tr>
 			<th><?php esc_html_e( 'Set up authenticator', 'defyn-security-manager' ); ?></th>
@@ -30,7 +34,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 				<div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;margin:14px 0;">
 					<div style="background:#fff;padding:10px;border:1px solid #c3c4c7;border-radius:6px;line-height:0;">
 						<?php if ( $qr_svg ) :
-							// SVG is generated server-side by DSM_QR::svg() from a Base32 secret +
+							// SVG is generated server-side by DEFSEC_QR::svg() from a Base32 secret +
 							// pre-encoded otpauth URI — no user input reaches the output. Still
 							// passed through wp_kses() with an explicit allowed-tag whitelist so
 							// WP.org Plugin Check's static analyzer accepts the echo as escaped.
@@ -63,13 +67,13 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 					</div>
 				</div>
 				<p>
-					<label for="dsm_enroll_code"><?php esc_html_e( 'Enter the 6-digit code from your app:', 'defyn-security-manager' ); ?></label><br />
-					<input type="text" id="dsm_enroll_code" name="dsm_enroll_code"
+					<label for="defsec_enroll_code"><?php esc_html_e( 'Enter the 6-digit code from your app:', 'defyn-security-manager' ); ?></label><br />
+					<input type="text" id="defsec_enroll_code" name="defsec_enroll_code"
 					       inputmode="numeric" autocomplete="one-time-code"
 					       style="font-size:1.2em;letter-spacing:0.2em;width:140px;text-align:center;" />
 				</p>
 				<p>
-					<button type="submit" name="dsm_2fa_action" value="enable" class="button button-primary">
+					<button type="submit" name="defsec_2fa_action" value="enable" class="button button-primary">
 						<?php esc_html_e( 'Enable 2FA', 'defyn-security-manager' ); ?>
 					</button>
 				</p>
@@ -90,10 +94,10 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 					?>
 				</p>
 				<p>
-					<button type="submit" name="dsm_2fa_action" value="regenerate_codes" class="button">
+					<button type="submit" name="defsec_2fa_action" value="regenerate_codes" class="button">
 						<?php esc_html_e( 'Regenerate backup codes', 'defyn-security-manager' ); ?>
 					</button>
-					<button type="submit" name="dsm_2fa_action" value="disable" class="button button-link-delete"
+					<button type="submit" name="defsec_2fa_action" value="disable" class="button button-link-delete"
 					        onclick="return confirm('<?php esc_attr_e( 'Disable 2FA for this account?', 'defyn-security-manager' ); ?>');">
 						<?php esc_html_e( 'Disable 2FA', 'defyn-security-manager' ); ?>
 					</button>

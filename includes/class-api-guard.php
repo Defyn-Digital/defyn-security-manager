@@ -6,7 +6,7 @@
  *   1. Enforce 2FA on REST API and XML-RPC authentication. WordPress's standard
  *      auth filter chain happily lets app-password and XML-RPC requests succeed
  *      without ever prompting for a TOTP code — bypassing the browser-flow 2FA
- *      we wired into DSM_Two_Factor. For users in a 2FA-required role
+ *      we wired into DEFSEC_Two_Factor. For users in a 2FA-required role
  *      who attempt to auth via API, we return WP_Error so the request fails.
  *
  *   2. Optional: 404 the public-facing /wp-json and /xmlrpc.php paths entirely.
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class DSM_API_Guard {
+class DEFSEC_API_Guard {
 
 	public function boot(): void {
 		// Priority 97: sits between throttle (96) and the browser-flow 2FA (100).
@@ -45,11 +45,11 @@ class DSM_API_Guard {
 		if ( ! self::is_api_request() ) {
 			return $user;
 		}
-		if ( ! DSM_Two_Factor::user_must_have_2fa( $user ) ) {
+		if ( ! DEFSEC_Two_Factor::user_must_have_2fa( $user ) ) {
 			return $user;
 		}
 
-		DSM_Activity_Log::record( DSM_Activity_Log::EVT_2FA_FAILED, [
+		DEFSEC_Activity_Log::record( DEFSEC_Activity_Log::EVT_2FA_FAILED, [
 			'user_id'  => $user->ID,
 			'username' => $user->user_login,
 			'details'  => [
@@ -59,7 +59,7 @@ class DSM_API_Guard {
 		] );
 
 		return new WP_Error(
-			'dsm_api_2fa_required',
+			'defsec_api_2fa_required',
 			__( '<strong>API access denied.</strong> Two-factor authentication is required for your account; XML-RPC and REST API auth cannot complete the 2FA challenge. Use the browser login flow.', 'defyn-security-manager' )
 		);
 	}
@@ -71,8 +71,8 @@ class DSM_API_Guard {
 	 * site that genuinely doesn't have REST/XML-RPC routed.
 	 */
 	public function maybe_block_api_paths(): void {
-		$hide_rest    = (bool) DSM_Options::get( 'hide_rest_api' );
-		$hide_xmlrpc  = (bool) DSM_Options::get( 'hide_xmlrpc' );
+		$hide_rest    = (bool) DEFSEC_Options::get( 'hide_rest_api' );
+		$hide_xmlrpc  = (bool) DEFSEC_Options::get( 'hide_xmlrpc' );
 		if ( ! $hide_rest && ! $hide_xmlrpc ) {
 			return;
 		}
@@ -100,13 +100,13 @@ class DSM_API_Guard {
 			return;
 		}
 
-		DSM_Activity_Log::record( DSM_Activity_Log::EVT_HIDDEN_URL_SCAN, [
+		DEFSEC_Activity_Log::record( DEFSEC_Activity_Log::EVT_HIDDEN_URL_SCAN, [
 			'details' => [ 'target' => $target ],
 		] );
 
 		// Defer to the Hidden_Login engine's blocked-response renderer so the user
 		// gets exactly the same look-and-feel as a /wp-admin probe.
-		DSM_Plugin::instance()->hidden_login->respond_blocked( $target );
+		DEFSEC_Plugin::instance()->hidden_login->respond_blocked( $target );
 	}
 
 	public static function is_api_request(): bool {

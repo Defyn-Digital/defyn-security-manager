@@ -6,7 +6,7 @@
  * is reached, the IP is locked out for a configurable duration and the lockout is
  * logged so the alerts dispatcher can notify the admin.
  *
- * Tracking lives in the `dsm_lockouts` table — durable across requests and
+ * Tracking lives in the `defsec_lockouts` table — durable across requests and
  * survives object cache flushes.
  */
 
@@ -14,11 +14,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class DSM_Throttle {
+class DEFSEC_Throttle {
 
 	public static function table(): string {
 		global $wpdb;
-		return $wpdb->prefix . 'dsm_lockouts';
+		return $wpdb->prefix . 'defsec_lockouts';
 	}
 
 	public function boot(): void {
@@ -34,21 +34,21 @@ class DSM_Throttle {
 	 * Refuse the auth attempt early if the IP is currently locked out.
 	 */
 	public function block_locked_ip( $user, $username, $password ) {
-		if ( ! DSM_Options::get( 'throttle_enabled' ) ) {
+		if ( ! DEFSEC_Options::get( 'throttle_enabled' ) ) {
 			return $user;
 		}
 		if ( empty( $username ) && empty( $password ) ) {
 			return $user; // not an actual login submission
 		}
 
-		$ip = dsm_client_ip();
-		if ( dsm_ip_in_list( $ip, (array) DSM_Options::get( 'ip_allowlist', [] ) ) ) {
+		$ip = defsec_client_ip();
+		if ( defsec_ip_in_list( $ip, (array) DEFSEC_Options::get( 'ip_allowlist', [] ) ) ) {
 			return $user; // allowlisted IPs bypass throttling
 		}
 
 		if ( $this->is_locked_out( $ip ) ) {
 			return new WP_Error(
-				'dsm_locked',
+				'defsec_locked',
 				__( '<strong>Too many failed attempts.</strong> Try again later.', 'defyn-security-manager' )
 			);
 		}
@@ -56,12 +56,12 @@ class DSM_Throttle {
 	}
 
 	public function record_failure( $username, $error = null ): void {
-		if ( ! DSM_Options::get( 'throttle_enabled' ) ) {
+		if ( ! DEFSEC_Options::get( 'throttle_enabled' ) ) {
 			return;
 		}
-		$ip = dsm_client_ip();
-		if ( dsm_ip_in_list( $ip, (array) DSM_Options::get( 'ip_allowlist', [] ) ) ) {
-			DSM_Activity_Log::record( DSM_Activity_Log::EVT_LOGIN_FAILED, [
+		$ip = defsec_client_ip();
+		if ( defsec_ip_in_list( $ip, (array) DEFSEC_Options::get( 'ip_allowlist', [] ) ) ) {
+			DEFSEC_Activity_Log::record( DEFSEC_Activity_Log::EVT_LOGIN_FAILED, [
 				'ip' => $ip, 'username' => $username, 'details' => [ 'allowlisted' => true ],
 			] );
 			return;
@@ -79,9 +79,9 @@ class DSM_Throttle {
 	 * activity log entry in those cases since the failure category differs).
 	 */
 	public static function increment_for_ip( string $ip, string $username = '', bool $record_password_failure = true ): void {
-		$max     = (int) DSM_Options::get( 'throttle_max_attempts' );
-		$window  = (int) DSM_Options::get( 'throttle_window_min' ) * MINUTE_IN_SECONDS;
-		$lockout = (int) DSM_Options::get( 'throttle_lockout_min' ) * MINUTE_IN_SECONDS;
+		$max     = (int) DEFSEC_Options::get( 'throttle_max_attempts' );
+		$window  = (int) DEFSEC_Options::get( 'throttle_window_min' ) * MINUTE_IN_SECONDS;
+		$lockout = (int) DEFSEC_Options::get( 'throttle_lockout_min' ) * MINUTE_IN_SECONDS;
 
 		global $wpdb;
 		$now_mysql = current_time( 'mysql', true );
@@ -124,7 +124,7 @@ class DSM_Throttle {
 		// The 2FA path records `2fa_failed` separately, so we only write a
 		// `login_failed` entry for the password path.
 		if ( $record_password_failure ) {
-			DSM_Activity_Log::record( DSM_Activity_Log::EVT_LOGIN_FAILED, [
+			DEFSEC_Activity_Log::record( DEFSEC_Activity_Log::EVT_LOGIN_FAILED, [
 				'ip'       => $ip,
 				'username' => $username,
 				'details'  => [ 'attempts' => $attempts, 'max' => $max ],
@@ -138,7 +138,7 @@ class DSM_Throttle {
 				[ 'locked_until' => $locked_until ],
 				[ 'ip' => $ip ]
 			);
-			DSM_Activity_Log::record( DSM_Activity_Log::EVT_LOCKOUT, [
+			DEFSEC_Activity_Log::record( DEFSEC_Activity_Log::EVT_LOCKOUT, [
 				'ip'       => $ip,
 				'username' => $username,
 				'details'  => [ 'locked_until' => $locked_until, 'attempts' => $attempts ],
@@ -149,7 +149,7 @@ class DSM_Throttle {
 	public function clear_on_success( $user_login, $user ): void {
 		global $wpdb;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Clear successful-login user's lockout counter from custom plugin table.
-		$wpdb->delete( self::table(), [ 'ip' => dsm_client_ip() ] );
+		$wpdb->delete( self::table(), [ 'ip' => defsec_client_ip() ] );
 	}
 
 	/**
