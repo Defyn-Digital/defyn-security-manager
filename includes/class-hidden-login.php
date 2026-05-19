@@ -157,23 +157,32 @@ class DEFSEC_Hidden_Login {
 	/**
 	 * Minimal decoy login. Always-fails — POST is silently dropped.
 	 *
-	 * The CSS and JS are externalised to assets/css/fake-login.css and
-	 * assets/js/fake-login.js, served via manual <link> / <script> tags
-	 * because this output bypasses the WordPress theme + enqueue pipeline
-	 * entirely (wp_head() would never fire here).
+	 * Assets are registered + enqueued + printed via the WP_Styles / WP_Scripts
+	 * singletons (`wp_styles()`, `wp_scripts()`) rather than the public
+	 * `wp_enqueue_*` wrappers. Reason: this method runs during `setup_theme`,
+	 * which is before `init` and before any of the canonical enqueue hooks
+	 * (`wp_enqueue_scripts`, `admin_enqueue_scripts`, `login_enqueue_scripts`)
+	 * fire. The public `wp_enqueue_*` wrappers emit a `doing_it_wrong` notice
+	 * when called this early. The singletons skip that guard and produce
+	 * identical `<link>` / `<script>` output, which keeps the decoy compatible
+	 * with `WP_DEBUG=true` while still going through the canonical asset API
+	 * (so Plugin Check's `EnqueuedResources` rules pass).
 	 */
 	private function render_fake_login(): void {
 		$site_name   = get_bloginfo( 'name' );
 		$nonce_token = wp_generate_password( 10, false );
-		$css_url     = DEFSEC_URL . 'assets/css/fake-login.css?v=' . rawurlencode( DEFSEC_VERSION );
-		$js_url      = DEFSEC_URL . 'assets/js/fake-login.js?v=' . rawurlencode( DEFSEC_VERSION );
+
+		$handle = 'defsec-fake-login';
+		wp_styles()->add( $handle, DEFSEC_URL . 'assets/css/fake-login.css', [], DEFSEC_VERSION );
+		wp_styles()->enqueue( $handle );
+		wp_scripts()->add( $handle, DEFSEC_URL . 'assets/js/fake-login.js', [], DEFSEC_VERSION );
+		wp_scripts()->enqueue( $handle );
 		?>
 <!doctype html>
 <html><head>
 <meta charset="utf-8" />
 <title>Log In &lsaquo; <?php echo esc_html( $site_name ); ?></title>
-<?php // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet -- This output bypasses the WP theme/enqueue pipeline; wp_head() never fires for the decoy login. Manual <link> tag is the equivalent. ?>
-<link rel="stylesheet" href="<?php echo esc_url( $css_url ); ?>" />
+<?php wp_styles()->do_items(); ?>
 </head><body>
 <div class="box">
   <h1><?php echo esc_html( $site_name ); ?></h1>
@@ -187,8 +196,7 @@ class DEFSEC_Hidden_Login {
     <input type="hidden" name="_t" value="<?php echo esc_attr( $nonce_token ); ?>" />
   </form>
 </div>
-<?php // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript -- This output bypasses the WP theme/enqueue pipeline; wp_footer() never fires for the decoy login. Manual <script src> tag is the equivalent. ?>
-<script src="<?php echo esc_url( $js_url ); ?>"></script>
+<?php wp_scripts()->do_items(); ?>
 </body></html>
 		<?php
 	}
