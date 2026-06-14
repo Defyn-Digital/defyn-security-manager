@@ -129,7 +129,7 @@ jobs:
           retention-days: 30
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: Defyn Security Manager ${{ steps.meta.outputs.version }}
           tag_name: ${{ steps.meta.outputs.tag }}
